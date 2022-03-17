@@ -19,7 +19,6 @@ available_port = False
 set_boot = False
 set_par = False
 set_modbus = False
-set_button = False
 filename = ''
 
 
@@ -50,7 +49,7 @@ def load_file():
             entry_par.configure(state=DISABLED)
             set_par = True
 
-        if file == 'modbus_slave_101.bin':
+        if file != 'bootloader.bin' and file != 'partition-table.bin':
             path_modbus = filename
             entry_app.insert(-1, path_modbus)
             entry_app.configure(state=DISABLED)
@@ -62,7 +61,6 @@ def chip_info():
     os.chdir("/home/panos/esp/esp-idf")
     p1 = subprocess.Popen(['bash -c \"source ./export.sh; cd home/panos/esp/esp-idf/components/esptool_py/esptool; esptool.py read_mac\"'], stdout=subprocess.PIPE, text=True, shell=True)
     (out, err) = p1.communicate()
-    print(out)
     
     mac = out.split("MAC: ")[1].split("\n")[0]
     chip = out.split("Chip ")[1].split("\n")[0]
@@ -97,39 +95,41 @@ def chip_info():
 
 
 def erase_button(por):
-    global set_button
     if available_port == True: 
         os.chdir("/home/panos/esp/esp-idf")
+        tkinter.messagebox.showinfo('Process', 'This may take a while! \n Please wait!')
         process = subprocess.Popen(['bash -c \"source ./export.sh; cd home/panos/esp/esp-idf/components/esptool_py/esptool; esptool.py -p{} erase_flash\"'.format(por)], stdout=subprocess.PIPE, text=True, shell=True)
         out, err = process.communicate()
         output = out.split('Chip erase ')[1].split('\n')[0]
         value = 'Chip erase ' + output
-        print(out)
+    
         if out.find(value):
             tkinter.messagebox.showinfo('Complete', value)
         else:
-            print('empty')    
+            tkinter.messagebox.showerror('Error', 'Something went wrong!')  
     else:
-        tkinter.messagebox.showinfo('Error', 'You must select a port!')
+        tkinter.messagebox.showerror('Error', 'You must select a port!')
 
 
                     
 def button_write(com):
-    global set_button
     if available_port == True:
         if set_boot == True and set_par == True and set_modbus == True:
-            tkinter.messagebox.showinfo('Process', 'This may take a while')
+            tkinter.messagebox.showinfo('Process', 'This may take a while! \n Please wait!')
             os.chdir("/home/panos/esp/esp-idf")
             p2 = subprocess.Popen(['bash -c \"source ./export.sh; cd home/panos/esp/esp-idf/components/esptool_py/esptool; esptool.py -p{} --chip esp32 -p{}  --baud 2000000 --before default_reset --after no_reset write_flash --flash_size detect 0x1000 {} 0x8000 {} 0x10000 {}\"'.format(com, com, path_boot, path_partition, path_modbus)], stdout=subprocess.PIPE, text=True, shell=True)                
             out, err = p2.communicate()
             o = out.split('Wrote ')[1].split('\n')[0]
             val = 'Wrote ' + o
+
             if out.find(val):
                 tkinter.messagebox.showinfo('Complete', val)
+            else:
+                tkinter.messagebox.showerror('Error', 'Something went wrong!')    
         else:
-            tkinter.messagebox.showinfo('Error', 'You must select all bin files!') 
+            tkinter.messagebox.showerror('Error', 'You must select all bin files!') 
     else:
-        tkinter.messagebox.showinfo('Error', 'You must select port!')
+        tkinter.messagebox.showerror('Error', 'You must select port!')
 
 
 def chip_clear():
@@ -168,8 +168,8 @@ config_menuTab.add_command(label="Load bootloader.bin", command=load_file)
 partable_subTab = Menu(config_menuTab, tearoff=0)
 config_menuTab.add_command(label="Load partition-table.bin", command=load_file)
 
-#sub tab image.bin
-image_subTab = Menu(config_menuTab, tearoff=0)
+#sub tab app.bin
+app_subTab = Menu(config_menuTab, tearoff=0)
 config_menuTab.add_command(label="Load app.bin", command=load_file)
 
 #button erase
